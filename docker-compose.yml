@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+    virt-assist:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            args:
+                - TZ=America/Los_Angeles
+        environment:
+            - PYTHONPATH=/home/hf/virt-assist
+            - MONGO_USER=${MONGO_USER}
+            - MONGO_PASSWORD=${MONGO_PASSWORD}
+        user: 1000:1000
+        working_dir: /home/hf/virt-assist/scripts
+        command: sh -x start_server.sh
+        volumes:
+            - ./src:/home/hf/virt-assist
+            - ./config:/config
+        networks:
+            - mongo_network
+        ports:
+            - 5000:5000     # Expose API
+            - 8888:8888     # Jupyter notebook
+
+    mongo:
+         image: mongo
+         environment:
+             - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+             - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+         # command: --verbose
+         volumes:
+             - mongo_data:/data/db
+         networks:
+             - mongo_network
+
+    mongo-express:
+         image: mongo-express
+         environment:
+             - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGO_USER}
+             - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_PASSWORD}
+         depends_on:
+             - mongo
+         networks:
+             - mongo_network
+         ports:
+             - 20048:8081
+
+
+volumes:
+    mongo_data:
+
+networks:
+    mongo_network:
+        driver: bridge
